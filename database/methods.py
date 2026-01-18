@@ -134,7 +134,9 @@ async def get_available_countries():
 async def get_all_configs():
     async with async_session() as session:
         result = await session.execute(select(Config))
-        return result.scalars().all()
+        rows = result.scalars().all()
+        print(f"   🔍 DB_DEBUG: Found {len(rows)} configs in database.")
+        return rows
 
 
 async def get_configs_by_country_tiered(country_code: str, limit: int):
