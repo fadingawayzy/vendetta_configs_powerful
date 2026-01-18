@@ -9,7 +9,7 @@ from database.methods import clear_configs_table, save_configs_bulk
 TRUSTED_SNI_SET = set(config.TRUSTED_SNI)
 
 TCP_SEM = asyncio.Semaphore(500)
-SSL_SEM = asyncio.Semaphore(500)
+SSL_SEM = asyncio.Semaphore(50)
 PREMIUM_PORTS = {443, 8443, 2053, 2083, 2087, 2096}
 
 
@@ -62,10 +62,10 @@ async def process_candidate(item: dict) -> dict | None:
         return None
 
     tag = f"#{item.get('flag', '')}_{c_code}_{ping}ms"
-    full_link = item["original_link"].split("#")[0] + tag
+    link = item["original_link"].split("#")[0] + tag
 
     return {
-        "link": full_link,
+        "link": link,
         "uuid": info.uuid,
         "country": c_code,
         "flag": item["flag"],

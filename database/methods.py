@@ -6,6 +6,7 @@ from database.models.config import Config
 from database.models.raw_config import RawConfig
 from database.models.user import User
 
+
 async def get_user_slot(user_id: int) -> int:
     async with async_session() as session:
         result = await session.execute(select(User).where(User.user_id == user_id))
@@ -67,6 +68,7 @@ async def get_user_settings(user_id: int):
 
         return countries, limit
 
+
 async def clear_raw_table():
     async with async_session() as session:
         await session.execute(delete(RawConfig))
@@ -94,6 +96,7 @@ async def count_raw_configs():
     async with async_session() as session:
         return await session.scalar(select(func.count(RawConfig.id)))
 
+
 async def clear_configs_table():
     async with async_session() as session:
         await session.execute(delete(Config))
@@ -105,7 +108,6 @@ async def save_configs_batch(configs_list: list):
     if not configs_list:
         return
     async with async_session() as session:
-        # ИСПРАВЛЕНО: Config.__table__
         stmt = pg_insert(Config.__table__).values(configs_list)
         stmt = stmt.on_conflict_do_nothing(index_elements=["uuid"])
         await session.execute(stmt)
@@ -144,6 +146,7 @@ async def get_configs_by_country_tiered(country_code: str, limit: int):
             .limit(limit)
         )
         return result.scalars().all()
+
 
 async def save_configs_bulk(configs_data: list[dict]):
     if not configs_data:
