@@ -23,8 +23,14 @@ except Exception:
 
 def deep_clean():
     """Глубокая очистка памяти после тяжелых задач."""
+    # 1. Сбор мусора Python
     gc.collect()
-    sys._clear_internal_caches()
+
+    # 2. Очистка кэша типов Python (Исправлено)
+    if hasattr(sys, "_clear_type_cache"):
+        sys._clear_type_cache()
+
+    # 3. Возврат памяти системе (только для glibc систем)
     if libc and hasattr(libc, "malloc_trim"):
         try:
             libc.malloc_trim(0)
@@ -69,7 +75,9 @@ async def update_subscriptions():
 
 def start_scheduler():
     scheduler = AsyncIOScheduler()
+    # Интервал 20 минут для баланса нагрузки на 1 CPU
     scheduler.add_job(update_subscriptions, "interval", minutes=20)
+    # Профилактическая чистка каждые 5 минут
     scheduler.add_job(memory_cleaner, "interval", minutes=5)
     scheduler.start()
     print("Scheduler started.")

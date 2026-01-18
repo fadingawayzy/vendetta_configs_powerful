@@ -30,8 +30,12 @@ except Exception:
 
 
 def force_release_memory():
+    """Радикальная очистка памяти."""
     gc.collect()
-    sys._clear_internal_caches()
+    # ИСПРАВЛЕНО: корректное имя метода очистки кэша интерпретатора
+    if hasattr(sys, "_clear_type_cache"):
+        sys._clear_type_cache()
+
     if libc and hasattr(libc, "malloc_trim"):
         try:
             libc.malloc_trim(0)
