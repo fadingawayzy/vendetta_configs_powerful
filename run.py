@@ -26,8 +26,6 @@ except Exception:
 async def resource_monitor():
     """Монитор для 1-ядерного сервера (1.0 CPU / 1024MB RAM)"""
     process = psutil.Process(os.getpid())
-
-    # Твои жесткие лимиты
     LIMIT_CPU = 100.0  # 100% одного ядра
     LIMIT_RAM = 1024.0
 

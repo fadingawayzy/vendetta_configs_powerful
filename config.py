@@ -94,6 +94,9 @@ class Config:
         "LINK 24": "https://github.com/sakha1370/OpenRay/blob/main/output/country/GB.txt",
         "LINK 25": "https://github.com/sakha1370/OpenRay/blob/main/output/country/PL.txt",
         "LINK 26": "https://github.com/sakha1370/OpenRay/blob/main/output/country/US.txt",
+        "LINK 27": "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_BASE64.txt?s=09#V2RAY_BASE64",
+        "LINK 28": "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray",
+        "LINK 29": "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/refs/heads/main/protocols/vl.txt",
     }
 
     GIST_SLOTS = {

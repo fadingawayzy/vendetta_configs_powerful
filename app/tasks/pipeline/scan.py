@@ -8,8 +8,8 @@ from database.methods import clear_configs_table, save_configs_bulk
 
 TRUSTED_SNI_SET = set(config.TRUSTED_SNI)
 
-TCP_SEM = asyncio.Semaphore(800)
-SSL_SEM = asyncio.Semaphore(300)
+TCP_SEM = asyncio.Semaphore(500)
+SSL_SEM = asyncio.Semaphore(500)
 PREMIUM_PORTS = {443, 8443, 2053, 2083, 2087, 2096}
 
 

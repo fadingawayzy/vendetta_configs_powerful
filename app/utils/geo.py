@@ -15,12 +15,11 @@ def init_geo():
     global _reader
     if os.path.exists(DB_PATH):
         try:
-            _reader = IP2Location.IP2Location(DB_PATH)
-            print("🌍 IP2Location: База загружена (Легкая версия)")
+            # Переходим на FILE_IO.
+            _reader = IP2Location.IP2Location(DB_PATH, "FILE_IO")
+            print("🌍 GeoIP: Switched to Disk Mode (RAM Saved)")
         except Exception as e:
-            print(f"⚠️ ip2location error: {e}")
-    else:
-        print(f"⚠️ ip2location: Файл не найден {DB_PATH}")
+            print(f"⚠️ geo error: {e}")
 
 
 def get_country(host: str) -> tuple[str, str]:
