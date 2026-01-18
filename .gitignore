@@ -1,0 +1,38 @@
+# Секреты
+.env
+.env.docker
+.idea/
+__pycache__/
+*.pyc
+user_actions.txt
+*.log
+# Python (кэш)
+__pycache__/
+*.py[oc]
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# Docker
+postgres_data/
+
+# Логи
+user_actions.txt
+*.log
+
+# База GeoIP
+*.mmdb
+*.BIN
+
+__pycache__/
+*.pyc
+.env
+.env.docker
+venv/
+.vscode/
+user_actions.txt
+ip2location.bin

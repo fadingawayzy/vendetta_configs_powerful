@@ -1,0 +1,17 @@
+aiogram>=3.0.0
+aiohttp~=3.13.2
+python-dotenv~=1.2.1
+apscheduler~=3.11.2
+psutil~=7.2.1
+geoip2
+maxminddb
+qrcode~=8.2
+pillow
+pytz
+sqlalchemy~=2.0.45
+asyncpg~=0.31.0
+alembic~=1.18.0
+psycopg2-binary
+greenlet
+IP2Location~=8.11.0
+uvloop
