@@ -1,5 +1,11 @@
 FROM python:3.12-alpine
-RUN apk add --no-cache gcc musl-dev libffi-dev postgresql-dev build-essential
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    postgresql-dev \
+    build-base \
+    python3-dev
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
