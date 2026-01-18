@@ -1,6 +1,8 @@
 import asyncio
 import ctypes
+import ctypes.util
 import gc
+import sys
 from datetime import datetime
 
 import pytz
@@ -11,34 +13,40 @@ from app.tasks.pipeline.export import run_export, run_whitelist_export
 from app.tasks.pipeline.fetch import run_fetch
 from app.tasks.pipeline.scan import run_scan
 
-# Попытка загрузить libc
+# Безопасная загрузка библиотеки C
 try:
-    libc = ctypes.CDLL("libc.so.6")
+    libc_path = ctypes.util.find_library("c")
+    libc = ctypes.CDLL(libc_path)
 except Exception:
     libc = None
 
 
 def deep_clean():
-    # 1. Сбор циклических ссылок Python
+    """Глубокая очистка памяти после тяжелых задач."""
     gc.collect()
-    # 2. Возврат страниц памяти операционной системе
-    if libc:
-        libc.malloc_trim(0)
+    sys._clear_internal_caches()
+    if libc and hasattr(libc, "malloc_trim"):
+        try:
+            libc.malloc_trim(0)
+        except Exception:
+            pass
 
 
 async def memory_cleaner():
+    """Задача очистки по расписанию."""
     deep_clean()
 
 
 async def update_subscriptions():
+    """Полный цикл обновления базы."""
     try:
         print("🏁 PIPELINE STARTED")
 
         await run_fetch()
-        deep_clean()  # Чистим после тяжелой загрузки
+        deep_clean()
 
         await run_scan()
-        deep_clean()  # Чистим после создания тысяч задач
+        deep_clean()
 
         await run_export()
         deep_clean()
@@ -48,7 +56,6 @@ async def update_subscriptions():
 
         moscow_tz = pytz.timezone("Europe/Moscow")
         current_time = datetime.now(moscow_tz).strftime("%H:%M %d.%m")
-
         storage.set_last_update(current_time)
 
         print(f"✅ CYCLE COMPLETE: {current_time}")
@@ -57,16 +64,12 @@ async def update_subscriptions():
         import traceback
 
         traceback.print_exc()
-        deep_clean()  # Чистим даже при ошибке
+        deep_clean()
 
 
 def start_scheduler():
     scheduler = AsyncIOScheduler()
-
-    # Основной цикл обновлений
     scheduler.add_job(update_subscriptions, "interval", minutes=20)
-
     scheduler.add_job(memory_cleaner, "interval", minutes=5)
-
     scheduler.start()
     print("Scheduler started.")
