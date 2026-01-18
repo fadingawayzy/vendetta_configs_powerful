@@ -26,7 +26,6 @@ user_actions.txt
 
 # База GeoIP
 *.mmdb
-*.BIN
 
 __pycache__/
 *.pyc
@@ -35,4 +34,3 @@ __pycache__/
 venv/
 .vscode/
 user_actions.txt
-ip2location.bin

@@ -8,6 +8,10 @@ services:
     restart: always
     env_file:
       - .env.docker
+    deploy:
+      resources:
+        limits:
+          memory: 180M
     depends_on:
       - db
     ports:
@@ -24,7 +28,11 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: vless_bot_playground
     command: >
-      postgres  -c shared_buffers=16MB  -c max_connections=10  -c work_mem=1MB  -c maintenance_work_mem=4MB  -c autovacuum=off
+      postgres -c shared_buffers=8MB -c max_connections=5 -c work_mem=1MB -c autovacuum=off -c max_worker_processes=2
+    deploy:
+      resources:
+        limits:
+          memory: 80M
     volumes:
       - postgres_data:/var/lib/postgresql/data
 volumes:
