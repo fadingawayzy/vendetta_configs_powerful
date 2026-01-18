@@ -23,6 +23,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: vless_bot_playground
+    command: >
+      postgres  -c shared_buffers=16MB  -c max_connections=10  -c work_mem=1MB  -c maintenance_work_mem=4MB  -c autovacuum=off
     volumes:
       - postgres_data:/var/lib/postgresql/data
 volumes:

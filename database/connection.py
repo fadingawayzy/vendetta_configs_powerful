@@ -9,7 +9,7 @@ print(f"🔌 Connecting to Database at: {config.database.host}:{config.database.
 DATABASE_URL = config.database.url
 
 engine = create_async_engine(
-    DATABASE_URL, echo=False, pool_size=2, max_overflow=0, pool_pre_ping=True
+    DATABASE_URL, echo=False, pool_size=2, max_overflow=0, pool_recycle=3600
 )
 
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
