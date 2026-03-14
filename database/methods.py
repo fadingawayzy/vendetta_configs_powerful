@@ -183,3 +183,15 @@ async def get_configs_for_singbox(max_ping=200, min_tier=3, countries=None, limi
         
         result = await session.execute(query)
         return result.scalars().all()
+    
+async def get_top_configs_for_singbox(limit=30):
+    """Лучшие конфиги для Sing-Box — все страны, сортировка по tier+ping."""
+    async with async_session() as session:
+        query = (
+            select(Config)
+            .where(Config.is_active == True)
+            .order_by(Config.tier, Config.ping)
+            .limit(limit)
+        )
+        result = await session.execute(query)
+        return result.scalars().all()

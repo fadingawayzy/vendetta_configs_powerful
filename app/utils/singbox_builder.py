@@ -119,34 +119,34 @@ PROFILES = {
     "balanced": {
         "name": "🛡 Баланс",
         "description": "YouTube + Discord + обход блокировок",
-        "max_ping": 200,
+        "max_ping": 300,      # было 200, расширяем
         "min_tier": 3,
-        "limit": 10,
+        "limit": 20,          # было 10, больше кандидатов
         "countries": None,
     },
     "gaming": {
         "name": "🎮 Игровой",
         "description": "Минимальный пинг для игр и Discord",
-        "max_ping": 50,
-        "min_tier": 1,
-        "limit": 5,
-        "countries": ["DE", "FI", "SE", "PL", "NL"],
+        "max_ping": 80,
+        "min_tier": 2,
+        "limit": 15,          # было 5
+        "countries": ["DE", "FI", "SE", "PL", "NL", "LV", "LT", "EE"],
     },
     "streaming": {
         "name": "🎬 Стриминг",
         "description": "YouTube, Netflix, Twitch — максимальная скорость",
-        "max_ping": 150,
+        "max_ping": 200,
         "min_tier": 2,
-        "limit": 10,
-        "countries": ["DE", "NL", "US", "GB", "SE"],
+        "limit": 20,          # было 10
+        "countries": ["DE", "NL", "US", "GB", "SE", "FI"],
     },
     "paranoid": {
         "name": "🔒 Паранойя",
         "description": "Максимальная приватность",
-        "max_ping": 300,
-        "min_tier": 1,
-        "limit": 5,
-        "countries": ["CH", "IS", "NO", "RO"],
+        "max_ping": 400,
+        "min_tier": 2,
+        "limit": 15,          # было 5
+        "countries": ["CH", "IS", "NO", "RO", "MD", "LU"],
     },
 }
 
@@ -184,22 +184,27 @@ class SingBoxBuilder:
 
         return self
 
-    def add_auto_select(self, interval: str = "1m", tolerance: int = 50) -> "SingBoxBuilder":
-        """Группа авто-выбора лучшего сервера."""
+    def add_auto_select(self, interval: str = "30s", tolerance: int = 100) -> "SingBoxBuilder":
+        """Агрессивный авто-выбор — проверка каждые 30 секунд."""
         proxy_tags = [
             o["tag"] for o in self.outbounds
             if o["type"] in ("vless", "hysteria2", "trojan")
         ]
 
-        if proxy_tags:
-            self.outbounds.append({
-                "type": "urltest",
-                "tag": "⚡ Auto",
-                "outbounds": proxy_tags,
-                "url": "http://cp.cloudflare.com",
-                "interval": interval,
-                "tolerance": tolerance,
-            })
+        if not proxy_tags:
+            return self
+
+        # Основная группа — urltest
+        self.outbounds.append({
+            "type": "urltest",
+            "tag": "⚡ Auto",
+            "outbounds": proxy_tags,
+            "url": "https://cp.cloudflare.com/generate_204",
+            "interval": interval,       # Каждые 30 секунд
+            "tolerance": tolerance,     # 100ms допуск
+            "idle_timeout": "30m",
+        })
+
         return self
 
     def add_split_routing(self) -> "SingBoxBuilder":

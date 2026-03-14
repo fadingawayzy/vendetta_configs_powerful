@@ -82,12 +82,10 @@ async def handle_singbox(request):
         user_id = int(request.match_info["user_id"])
         profile = request.match_info.get("profile", "balanced")
 
-        # Валидация профиля
         valid_profiles = ["balanced", "gaming", "streaming", "paranoid"]
         if profile not in valid_profiles:
             profile = "balanced"
 
-        # Кэш
         cache_key = f"sb_{user_id}_{profile}"
         now = time.time()
         if cache_key in CACHE:
@@ -96,38 +94,46 @@ async def handle_singbox(request):
                 return web.Response(
                     text=data,
                     content_type="application/json",
-                    headers={"Content-Disposition": f"inline; filename=vendetta_{profile}.json"}
                 )
             del CACHE[cache_key]
 
-        # Получаем конфиги юзера
-        settings = await get_user_settings(user_id)
-        countries, limit = settings if settings else (["US", "DE", "NL"], 20)
+        # Для Sing-Box берём ВСЕ лучшие конфиги, не только по странам юзера
+        from database.methods import get_top_configs_for_singbox
+        
+        rows = await get_top_configs_for_singbox(limit=30)
 
         configs = []
-        for code in countries:
-            rows = await get_configs_by_country_tiered(code, limit=limit * 3)
-            for r in rows:
-                configs.append({
-                    "link": getattr(r, "link", getattr(r, "full_link", "")),
-                    "country": getattr(r, "country", ""),
-                    "flag": getattr(r, "flag", ""),
-                    "ping": getattr(r, "ping", 999),
-                    "tier": getattr(r, "tier", 3),
-                })
+        for r in rows:
+            link = getattr(r, "link", "")
+            country = getattr(r, "country", "")
+            
+            # Фильтруем бесполезные для обхода блокировок
+            if country in ("RU", "BY", "CN", "IR"):
+                continue
+                
+            configs.append({
+                "link": link,
+                "country": country,
+                "flag": getattr(r, "flag", ""),
+                "ping": getattr(r, "ping", 999),
+                "tier": getattr(r, "tier", 3),
+            })
 
         if not configs:
-            return web.Response(text='{"error": "no configs"}', status=404, content_type="application/json")
+            return web.Response(
+                text='{"error": "no configs"}',
+                status=404,
+                content_type="application/json"
+            )
 
-        # Генерируем Sing-Box JSON
         json_str = build_for_profile(configs, profile)
-
-        CACHE[cache_key] = (now + TTL, json_str)
+        
+        # Кэш короче — 3 минуты вместо 5, конфиги мрут быстро
+        CACHE[cache_key] = (now + 180, json_str)
 
         return web.Response(
             text=json_str,
             content_type="application/json",
-            headers={"Content-Disposition": f"inline; filename=vendetta_{profile}.json"}
         )
 
     except Exception:
