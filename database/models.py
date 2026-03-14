@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import BigInteger, Integer, Text, String, Index
+from sqlalchemy import BigInteger, Integer, Text, String, Index, DateTime, func
+from datetime import datetime
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -27,6 +28,8 @@ class Config(Base):
     ping: Mapped[int] = mapped_column(Integer, index=True)  # <--- ДОБАВЛЕН INDEX
     source: Mapped[str] = mapped_column(String(50))
     tier: Mapped[int] = mapped_column(Integer, default=3, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
     # Составной индекс для супер-быстрых выборок
     __table_args__ = (

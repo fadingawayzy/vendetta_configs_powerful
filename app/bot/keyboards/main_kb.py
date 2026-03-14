@@ -23,5 +23,7 @@ def get_inline_menu():
     builder.button(text="🎲 Мне повезет", callback_data="lucky")
 
     builder.button(text="🤝 Поделиться", callback_data="share_menu")
+
+    builder.button(text="📱 Sing-Box", callback_data="singbox_menu")
     builder.adjust(1)
     return builder.as_markup()

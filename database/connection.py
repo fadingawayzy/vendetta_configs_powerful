@@ -32,4 +32,7 @@ async def init_models():
         print("✅ Database initialized successfully.")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
-        raise e
+        raise
+    finally:
+        # Закрываем соединение после создания таблиц
+        await engine.dispose()

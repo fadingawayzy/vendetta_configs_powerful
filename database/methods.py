@@ -45,6 +45,13 @@ async def get_user_filter(user_id: int) -> list[str]:
         val = res.scalar_one_or_none()
         return val.split(",") if val else []
 
+async def get_user_filter_count(user_id: int) -> int:
+    async with async_session() as session:
+        res = await session.execute(
+            select(func.count(User.id)).where(User.user_id == user_id)
+        )
+        return res.scalar_one()
+
 
 async def set_user_limit(user_id: int, limit: int):
     async with async_session() as session:
@@ -160,3 +167,19 @@ async def save_configs_bulk(configs_data: list[dict]):
         await session.execute(stmt, configs_data)
 
         await session.commit()
+
+async def get_configs_for_singbox(max_ping=200, min_tier=3, countries=None, limit=10):
+    """Получает конфиги для Sing-Box builder."""
+    async with async_session() as session:
+        query = select(Config).where(Config.is_active == True)
+        
+        query = query.where(Config.ping <= max_ping)
+        query = query.where(Config.tier <= min_tier)
+        
+        if countries:
+            query = query.where(Config.country.in_(countries))
+        
+        query = query.order_by(Config.tier, Config.ping).limit(limit)
+        
+        result = await session.execute(query)
+        return result.scalars().all()

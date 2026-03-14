@@ -6,7 +6,8 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+from app.utils.singbox_builder import build_for_profile, PROFILES
+from database.methods import get_configs_for_singbox
 from app.bot.keyboards.main_kb import get_inline_menu
 from app.bot.keyboards.sub_kb import (
     get_back_to_my_json,
@@ -331,3 +332,100 @@ async def cb_clear_countries(call: CallbackQuery):
     await set_user_filter(call.from_user.id, [])
     await call.message.edit_reply_markup(reply_markup=await get_custom_sub_kb([]))
     await call.answer("Очищено")
+
+# === SING-BOX ПРОФИЛИ ===
+
+@router.callback_query(F.data == "singbox_menu")
+async def cb_singbox_menu(call: CallbackQuery):
+    b = InlineKeyboardBuilder()
+    for key, profile in PROFILES.items():
+        b.button(text=f"{profile['name']}", callback_data=f"singbox_{key}")
+    b.button(text="🔙 Назад", callback_data="main_menu")
+    b.adjust(2)
+    
+    await call.message.edit_text(
+        "📱 <b>Sing-Box конфиги</b>\n\n"
+        "Выберите профиль. Конфиг включает:\n"
+        "• Авто-переключение на быстрый сервер\n"
+        "• Банки и Госуслуги работают без VPN\n"
+        "• Реклама заблокирована\n"
+        "• Kill Switch",
+        reply_markup=b.as_markup(),
+        parse_mode="HTML"
+    )
+
+
+@router.callback_query(F.data.startswith("singbox_"))
+async def cb_singbox_profile(call: CallbackQuery):
+    profile_name = call.data.replace("singbox_", "")
+    profile = PROFILES.get(profile_name)
+    
+    if not profile:
+        await call.answer("Профиль не найден", show_alert=True)
+        return
+    
+    await call.answer("⏳ Генерирую конфиг...")
+    
+    configs = await get_configs_for_singbox(
+        max_ping=profile["max_ping"],
+        min_tier=profile["min_tier"],
+        countries=profile.get("countries"),
+        limit=profile["limit"]
+    )
+    
+    if not configs:
+        configs = await get_configs_for_singbox(
+            max_ping=300, min_tier=3, countries=None, limit=5
+        )
+    
+    if not configs:
+        await call.message.edit_text("⚠️ Нет доступных конфигов. Попробуйте позже.")
+        return
+    
+    config_dicts = [
+        {
+            "link": c.link,
+            "country": c.country,
+            "flag": c.flag,
+            "ping": c.ping,
+            "tier": c.tier,
+        }
+        for c in configs
+    ]
+    
+    json_str = build_for_profile(config_dicts, profile_name)
+    
+    bio = io.BytesIO(json_str.encode())
+    doc = BufferedInputFile(bio.getvalue(), filename=f"vendetta_{profile_name}.json")
+    
+    b = InlineKeyboardBuilder()
+    b.button(text="🔄 Другой профиль", callback_data="singbox_menu")
+    b.button(text="🔙 Меню", callback_data="main_menu")
+    b.adjust(2)
+    
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
+    
+    await call.message.answer_document(
+        doc,
+        caption=(
+            f"📱 <b>{profile['name']}</b>\n"
+            f"{profile['description']}\n\n"
+            f"🔗 Серверов: {len(config_dicts)}\n"
+            f"⚡ Лучший пинг: {min(c['ping'] for c in config_dicts)}ms\n\n"
+            f"<b>Как использовать:</b>\n"
+            f"1. Скачай Hiddify или Sing-Box\n"
+            f"2. Импортируй этот файл\n"
+            f"3. Включи — всё работает\n\n"
+            f"🇷🇺 Сбербанк, Госуслуги, Яндекс — напрямую\n"
+            f"🌍 YouTube, Discord, Instagram — через VPN"
+        ),
+        reply_markup=b.as_markup(),
+        parse_mode="HTML"
+    )
+    
+    bio.close()
+    del bio, doc
+    gc.collect()
