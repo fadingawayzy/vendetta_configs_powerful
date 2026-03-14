@@ -68,24 +68,45 @@ class Config:
 
     # Источники оставлены полными, фильтр справится
     SUBSCRIPTION_SOURCES = {
+        # === Мультипротокольные агрегаторы ===
         "LINK1": "https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt",
         "LINK2": "https://raw.githubusercontent.com/yitong2333/proxy-minging/refs/heads/main/v2ray.txt",
         "LINK3": "https://raw.githubusercontent.com/acymz/AutoVPN/refs/heads/main/data/V2.txt",
         "LINK4": "https://raw.githubusercontent.com/miladtahanian/V2RayCFGDumper/refs/heads/main/config.txt",
         "LINK5": "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
-        "LINK6": "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
-        "LINK7": "https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/refs/heads/main/Config/vless.txt",
-        "LINK8": "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
-        "LINK9": "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/vless.txt",
-        "LINK10": "https://raw.githubusercontent.com/kort0881/vpn-vless-configs-russia/refs/heads/main/vpn-files/all_posts.txt",
-        "LINK11": "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Eternity",
-        "LINK12": "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
-        "LINK13": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/5.txt",
-        "LINK 14": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/22.txt",
-        "LINK 15": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/23.txt",
-        "LINK 16": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/1.txt",
-        "LINK 17": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/24.txt",
-        "LINK 18": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/25.txt",
+        "LINK6": "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/Eternity",
+        "LINK7": "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray",
+        # === VLESS специфичные ===
+        "LINK8": "https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/refs/heads/main/Config/vless.txt",
+        "LINK9": "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/vless.txt",
+        "LINK10": "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/Splitted-By-Protocol/trojan.txt",
+        "LINK11": "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/vless.txt",
+        "LINK12": "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/refs/heads/main/protocols/vl.txt",
+        # === Россия-ориентированные ===
+        "LINK13": "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/BLACK_VLESS_RUS.txt",
+        "LINK14": "https://raw.githubusercontent.com/kort0881/vpn-vless-configs-russia/refs/heads/main/vpn-files/all_posts.txt",
+        # === AvenCores ===
+        "LINK15": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/1.txt",
+        "LINK16": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/3.txt",
+        "LINK17": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/5.txt",
+        "LINK18": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/10.txt",
+        "LINK19": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/13.txt",
+        "LINK20": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/14.txt",
+        "LINK21": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/17.txt",
+        "LINK22": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/20.txt",
+        "LINK23": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/22.txt",
+        "LINK24": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/23.txt",
+        "LINK25": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/24.txt",
+        "LINK26": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/25.txt",
+        # === По странам ===
+        "LINK27": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/DE.txt",
+        "LINK28": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/NL.txt",
+        "LINK29": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/US.txt",
+        "LINK30": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/GB.txt",
+        "LINK31": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/PL.txt",
+        "LINK32": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/CA.txt",
+        "LINK33": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/BG.txt",
+    }
     }
 
     GIST_SLOTS = {
