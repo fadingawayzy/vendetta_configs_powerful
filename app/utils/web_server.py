@@ -86,31 +86,35 @@ async def handle_singbox(request):
         if profile not in valid_profiles:
             profile = "balanced"
 
-        cache_key = f"sb_{user_id}_{profile}"
+        # Определяем клиент по User-Agent
+        ua = request.headers.get("User-Agent", "").lower()
+        
+        # Sing-Box JSON для совместимых клиентов
+        is_singbox_client = any(x in ua for x in [
+            "sing-box", "hiddify", "sfi",
+        ])
+
+        cache_key = f"sb_{user_id}_{profile}_{'sb' if is_singbox_client else 'b64'}"
         now = time.time()
         if cache_key in CACHE:
             expire, data = CACHE[cache_key]
             if now < expire:
-                return web.Response(
-                    text=data,
-                    content_type="application/json",
-                )
+                ct = "application/json" if is_singbox_client else "text/plain"
+                return web.Response(text=data, content_type=ct)
             del CACHE[cache_key]
 
-        # Для Sing-Box берём ВСЕ лучшие конфиги, не только по странам юзера
         from database.methods import get_top_configs_for_singbox
-        
+
         rows = await get_top_configs_for_singbox(limit=30)
 
         configs = []
         for r in rows:
             link = getattr(r, "link", "")
             country = getattr(r, "country", "")
-            
-            # Фильтруем бесполезные для обхода блокировок
+
             if country in ("RU", "BY", "CN", "IR"):
                 continue
-                
+
             configs.append({
                 "link": link,
                 "country": country,
@@ -120,21 +124,22 @@ async def handle_singbox(request):
             })
 
         if not configs:
-            return web.Response(
-                text='{"error": "no configs"}',
-                status=404,
-                content_type="application/json"
-            )
+            return web.Response(text="No configs", status=404)
 
-        json_str = build_for_profile(configs, profile)
-        
-        # Кэш короче — 3 минуты вместо 5, конфиги мрут быстро
-        CACHE[cache_key] = (now + 180, json_str)
+        if is_singbox_client:
+            # Sing-Box JSON
+            result = build_for_profile(configs, profile)
+            content_type = "application/json"
+        else:
+            # Base64 для V2RayNG, NekoBox и остальных
+            links = [c["link"] for c in configs]
+            text_data = "\n".join(links)
+            result = base64.b64encode(text_data.encode()).decode()
+            content_type = "text/plain"
 
-        return web.Response(
-            text=json_str,
-            content_type="application/json",
-        )
+        CACHE[cache_key] = (now + 180, result)
+
+        return web.Response(text=result, content_type=content_type)
 
     except Exception:
         return web.Response(status=500)
