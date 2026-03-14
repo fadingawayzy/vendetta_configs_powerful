@@ -359,73 +359,38 @@ async def cb_singbox_menu(call: CallbackQuery):
 async def cb_singbox_profile(call: CallbackQuery):
     profile_name = call.data.replace("singbox_", "")
     profile = PROFILES.get(profile_name)
-    
+
     if not profile:
         await call.answer("Профиль не найден", show_alert=True)
         return
-    
-    await call.answer("⏳ Генерирую конфиг...")
-    
-    configs = await get_configs_for_singbox(
-        max_ping=profile["max_ping"],
-        min_tier=profile["min_tier"],
-        countries=profile.get("countries"),
-        limit=profile["limit"]
-    )
-    
-    if not configs:
-        configs = await get_configs_for_singbox(
-            max_ping=300, min_tier=3, countries=None, limit=5
-        )
-    
-    if not configs:
-        await call.message.edit_text("⚠️ Нет доступных конфигов. Попробуйте позже.")
-        return
-    
-    config_dicts = [
-        {
-            "link": c.link,
-            "country": c.country,
-            "flag": c.flag,
-            "ping": c.ping,
-            "tier": c.tier,
-        }
-        for c in configs
-    ]
-    
-    json_str = build_for_profile(config_dicts, profile_name)
-    
-    bio = io.BytesIO(json_str.encode())
-    doc = BufferedInputFile(bio.getvalue(), filename=f"vendetta_{profile_name}.json")
-    
+
+    user_id = call.from_user.id
+    base_url = config.APP_BASE_URL
+
+    if profile_name == "balanced":
+        url = f"{base_url}/singbox/{user_id}"
+    else:
+        url = f"{base_url}/singbox/{user_id}/{profile_name}"
+
     b = InlineKeyboardBuilder()
     b.button(text="🔄 Другой профиль", callback_data="singbox_menu")
     b.button(text="🔙 Меню", callback_data="main_menu")
     b.adjust(2)
-    
-    try:
-        await call.message.delete()
-    except Exception:
-        pass
-    
-    await call.message.answer_document(
-        doc,
-        caption=(
-            f"📱 <b>{profile['name']}</b>\n"
-            f"{profile['description']}\n\n"
-            f"🔗 Серверов: {len(config_dicts)}\n"
-            f"⚡ Лучший пинг: {min(c['ping'] for c in config_dicts)}ms\n\n"
-            f"<b>Как использовать:</b>\n"
-            f"1. Скачай Hiddify или Sing-Box\n"
-            f"2. Импортируй этот файл\n"
-            f"3. Включи — всё работает\n\n"
-            f"🇷🇺 Сбербанк, Госуслуги, Яндекс — напрямую\n"
-            f"🌍 YouTube, Discord, Instagram — через VPN"
-        ),
+
+    await call.message.edit_text(
+        f"📱 <b>{profile['name']}</b>\n"
+        f"{profile['description']}\n\n"
+        f"<b>Ссылка подписки:</b>\n"
+        f"<code>{url}</code>\n\n"
+        f"<b>Как подключить:</b>\n"
+        f"1. Скачай <b>Hiddify</b> из Google Play / App Store\n"
+        f"2. Скопируй ссылку выше\n"
+        f"3. В Hiddify нажми + → Добавить из буфера\n"
+        f"4. Включи — готово!\n\n"
+        f"🇷🇺 Сбер, Госуслуги, Яндекс — напрямую\n"
+        f"🌍 YouTube, Discord, Instagram — через VPN\n"
+        f"🚫 Реклама заблокирована\n"
+        f"⚡ Авто-переключение на быстрый сервер",
         reply_markup=b.as_markup(),
         parse_mode="HTML"
     )
-    
-    bio.close()
-    del bio, doc
-    gc.collect()

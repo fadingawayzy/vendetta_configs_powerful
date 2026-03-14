@@ -9,6 +9,8 @@ from aiohttp import web
 
 from database.methods import get_configs_by_country_tiered, get_user_settings
 
+from app.utils.singbox_builder import build_for_profile
+
 CACHE = {}
 TTL = 300
 
@@ -75,9 +77,70 @@ async def handle_sub(request):
 async def handle_ping(request):
     return web.Response(text="OK")
 
+async def handle_singbox(request):
+    try:
+        user_id = int(request.match_info["user_id"])
+        profile = request.match_info.get("profile", "balanced")
+
+        # Валидация профиля
+        valid_profiles = ["balanced", "gaming", "streaming", "paranoid"]
+        if profile not in valid_profiles:
+            profile = "balanced"
+
+        # Кэш
+        cache_key = f"sb_{user_id}_{profile}"
+        now = time.time()
+        if cache_key in CACHE:
+            expire, data = CACHE[cache_key]
+            if now < expire:
+                return web.Response(
+                    text=data,
+                    content_type="application/json",
+                    headers={"Content-Disposition": f"inline; filename=vendetta_{profile}.json"}
+                )
+            del CACHE[cache_key]
+
+        # Получаем конфиги юзера
+        settings = await get_user_settings(user_id)
+        countries, limit = settings if settings else (["US", "DE", "NL"], 20)
+
+        configs = []
+        for code in countries:
+            rows = await get_configs_by_country_tiered(code, limit=limit * 3)
+            for r in rows:
+                configs.append({
+                    "link": getattr(r, "link", getattr(r, "full_link", "")),
+                    "country": getattr(r, "country", ""),
+                    "flag": getattr(r, "flag", ""),
+                    "ping": getattr(r, "ping", 999),
+                    "tier": getattr(r, "tier", 3),
+                })
+
+        if not configs:
+            return web.Response(text='{"error": "no configs"}', status=404, content_type="application/json")
+
+        # Генерируем Sing-Box JSON
+        json_str = build_for_profile(configs, profile)
+
+        CACHE[cache_key] = (now + TTL, json_str)
+
+        return web.Response(
+            text=json_str,
+            content_type="application/json",
+            headers={"Content-Disposition": f"inline; filename=vendetta_{profile}.json"}
+        )
+
+    except Exception:
+        return web.Response(status=500)
 
 async def start_web_server():
     app = web.Application()
+    app.add_routes([
+        web.get("/", handle_ping),
+        web.get("/sub/{user_id}", handle_sub),
+        web.get("/singbox/{user_id}", handle_singbox),
+        web.get("/singbox/{user_id}/{profile}", handle_singbox),
+    ])
     app.add_routes([web.get("/", handle_ping), web.get("/sub/{user_id}", handle_sub)])
     app.on_startup.append(start_background_tasks)
     app.on_cleanup.append(cleanup_background_tasks)
