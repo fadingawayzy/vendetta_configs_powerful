@@ -107,7 +107,6 @@ class Config:
         "LINK32": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/CA.txt",
         "LINK33": "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/country/BG.txt",
     }
-    }
 
     GIST_SLOTS = {
         "SLOT_1": "https://gist.githubusercontent.com/fadingawayzy/b6f025c55a79c9ac594df7cf85923fd8/raw/Sub_Slot_1.txt",
