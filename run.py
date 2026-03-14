@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 CPU_LIMIT = 100.0  # 1 ядро
 RAM_LIMIT = 1024.0  # 1 ГБ
 
-# Подключаем ручное управление памятью Linux
+# Подключаем ручное управление памятью Linux (просто библиотеку чтобы работать с ЯП C и в целом его методами/функциями не ебу короче )
 try:
     libc_path = ctypes.util.find_library("c")
     libc = ctypes.CDLL(libc_path)
@@ -30,12 +30,13 @@ except Exception:
 
 
 def force_release_memory():
-    """Радикальная очистка памяти."""
+    #обычная очистка памяти
     gc.collect()
-    # ИСПРАВЛЕНО: корректное имя метода очистки кэша интерпретатора
+    # используем корректное имя метода очистки кэша интерпретатора
+    # чистим всю память которая осталась у интерпретатора 
     if hasattr(sys, "_clear_type_cache"):
         sys._clear_type_cache()
-
+    # забираем вообще всё у аллокатора malloc
     if libc and hasattr(libc, "malloc_trim"):
         try:
             libc.malloc_trim(0)
@@ -54,15 +55,9 @@ async def resource_monitor():
         try:
             rss = process.memory_info().rss / 1024 / 1024
             cpu = process.cpu_percent(None)
-
-            def make_bar(p):
-                p_norm = max(0, min(100, p))
-                filled = int(p_norm / 10)
-                return "[" + "█" * filled + "░" * (10 - filled) + "]"
-
             print(
-                f"📊 {make_bar(rss/RAM_LIMIT*100)} RAM: {rss:.1f}/{RAM_LIMIT}MB | "
-                f"{make_bar(cpu)} CPU: {cpu:.1f}%",
+                f"📊 {rss/RAM_LIMIT*100} RAM: {rss:.1f}/{RAM_LIMIT}MB | "
+                f"{cpu} CPU: {cpu:.1f}%",
                 flush=True,
             )
 

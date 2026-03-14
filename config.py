@@ -86,25 +86,6 @@ class Config:
         "LINK 16": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/1.txt",
         "LINK 17": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/24.txt",
         "LINK 18": "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/25.txt",
-        "LINK 19": "https://github.com/sakha1370/OpenRay/blob/main/output/all_valid_proxies.txt",
-        "LINK 20": "https://github.com/sakha1370/OpenRay/blob/main/output/country/DE.txt",
-        "LINK 21": "https://github.com/sakha1370/OpenRay/blob/main/output/country/NL.txt",
-        "LINK 22": "https://github.com/sakha1370/OpenRay/blob/main/output/country/BG.txt",
-        "LINK 23": "https://github.com/sakha1370/OpenRay/blob/main/output/country/CA.txt",
-        "LINK 24": "https://github.com/sakha1370/OpenRay/blob/main/output/country/GB.txt",
-        "LINK 25": "https://github.com/sakha1370/OpenRay/blob/main/output/country/PL.txt",
-        "LINK 26": "https://github.com/sakha1370/OpenRay/blob/main/output/country/US.txt",
-        "LINK 27": "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_BASE64.txt?s=09#V2RAY_BASE64",
-        "LINK 28": "https://raw.githubusercontent.com/ssrsub/ssr/master/v2ray",
-        "LINK 29": "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/refs/heads/main/protocols/vl.txt",
-        "LINK 30": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/20.txt",
-        "LINK 31": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/14.txt",
-        "LINK 32": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/17.txt",
-        "LINK 33": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/10.txt",
-        "LINK 34": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/13.txt",
-        "LINK 35": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/14.txt",
-        "LINK 36": "https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/3.txt",
-        "LINK 37": "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/Splitted-By-Protocol/vless.txt",
     }
 
     GIST_SLOTS = {
@@ -113,8 +94,8 @@ class Config:
         "SLOT_3": "https://gist.githubusercontent.com/fadingawayzy/dd141d549c329dc63c77148c9fb75904/raw/Sub_Slot_3.txt",
         "SLOT_4": "https://gist.githubusercontent.com/fadingawayzy/45b5cc88febea751eb70f99e49fd335e/raw/Sub_Slot_4.txt",
         "SLOT_5": "https://gist.githubusercontent.com/fadingawayzy/bd974eee8868df466257a2d16c74a6d6/raw/Sub_Slot_5.txt",
-        "SLOT_6": "https://gist.githubusercontent.com/fadingawayzy/0032c9ed68c892b5c933d9863ef8fad3/raw/Sub_Slot_6.txt",  # SNI
-        "SLOT_7": "https://gist.githubusercontent.com/fadingawayzy/e437b60a0e9c33747aa3fff6d3c2ca9c/raw/Sub_Slot_7.txt",  # CIDR
+        "SLOT_6": "https://gist.githubusercontent.com/fadingawayzy/0032c9ed68c892b5c933d9863ef8fad3/raw/sub.txt",  # SNI
+        "SLOT_7": "https://gist.githubusercontent.com/fadingawayzy/e437b60a0e9c33747aa3fff6d3c2ca9c/raw/sub.txt",  # CIDR
     }
 
 
