@@ -335,7 +335,8 @@ class SingBoxBuilder:
                         country: str, flag: str, ping: int) -> Optional[dict]:
         """Конвертирует VlessFullInfo в Sing-Box outbound."""
 
-        tag = f"{flag} {country} {ping}ms"
+        host_short = info.host.split('.')[0][-4:]
+        tag = f"{flag} {country} {ping}ms [{host_short}]"
 
         out = {
             "type": "vless",
