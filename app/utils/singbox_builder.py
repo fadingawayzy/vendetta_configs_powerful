@@ -1,11 +1,5 @@
 """
-Vendetta Sing-Box Config Builder
-Генерирует конфиги Sing-Box с:
-- Сплит-туннелинг (РФ сайты напрямую)
-- Авто-балансировка (urltest)
-- Блокировка рекламы
-- uTLS fingerprint (chrome)
-- Kill Switch
+Vendetta Sing-Box Config Builder v2 (Ironclad)
 """
 
 import json
@@ -14,44 +8,37 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-# === ПАРСЕР ПОЛНЫХ ПАРАМЕТРОВ ИЗ VLESS ССЫЛКИ ===
-
 @dataclass
 class VlessFullInfo:
-    """Все параметры VLESS ссылки для Sing-Box."""
     uuid: str = ""
     host: str = ""
     port: int = 443
     security: str = "none"
     sni: str = ""
-    transport: str = "tcp"        # tcp, ws, grpc, xhttp, h2
-    flow: str = ""                # xtls-rprx-vision
-    pbk: str = ""                 # reality public key
-    sid: str = ""                 # reality short id
-    fp: str = "chrome"            # fingerprint
-    path: str = "/"               # websocket/xhttp path
-    service_name: str = ""        # grpc service name
+    transport: str = "tcp"
+    flow: str = ""
+    pbk: str = ""
+    sid: str = ""
+    fp: str = "chrome"
+    path: str = "/"
+    service_name: str = ""
     alpn: list = field(default_factory=list)
-    tag: str = ""                 # название
+    tag: str = ""
 
 
 def parse_vless_full(link: str) -> Optional[VlessFullInfo]:
-    """Парсит VLESS ссылку и извлекает ВСЕ параметры."""
     try:
         body = link.replace("vless://", "")
 
-        # Отделяем tag (#name)
         tag = ""
         if "#" in body:
             body, tag_raw = body.split("#", 1)
             tag = urllib.parse.unquote(tag_raw).strip()
 
-        # Отделяем параметры
         query = ""
         if "?" in body:
             body, query = body.split("?", 1)
 
-        # UUID и host:port
         if "@" not in body:
             return None
 
@@ -61,7 +48,6 @@ def parse_vless_full(link: str) -> Optional[VlessFullInfo]:
             return None
 
         host, port_str = host_port.rsplit(":", 1)
-        # Убираем скобки IPv6
         host = host.strip("[]")
 
         params = urllib.parse.parse_qs(query)
@@ -86,12 +72,10 @@ def parse_vless_full(link: str) -> Optional[VlessFullInfo]:
             tag=tag,
         )
 
-        # ALPN
         alpn_raw = get_param("alpn", "")
         if alpn_raw:
             info.alpn = alpn_raw.split(",")
 
-        # Если SNI пустой — берём host-параметр
         if not info.sni:
             info.sni = get_param("host", info.host)
 
@@ -101,27 +85,13 @@ def parse_vless_full(link: str) -> Optional[VlessFullInfo]:
         return None
 
 
-# === КОНСТАНТЫ ===
-
-RU_DIRECT_DOMAINS = [
-    ".sberbank.ru", ".tinkoff.ru", ".vtb.ru", ".alfabank.ru",
-    ".gosuslugi.ru", ".nalog.gov.ru", ".mos.ru", ".kremlin.ru",
-    ".yandex.ru", ".yandex.net", ".ya.ru", ".yandex.com",
-    ".mail.ru", ".vk.com", ".ok.ru", ".dzen.ru",
-    ".wildberries.ru", ".ozon.ru", ".avito.ru",
-    ".megafon.ru", ".mts.ru", ".beeline.ru", ".tele2.ru",
-    ".rt.ru", ".rostelecom.ru", ".domru.ru",
-    ".pochta.ru", ".rzd.ru", ".aeroflot.ru",
-    ".kinopoisk.ru", ".ivi.ru",
-]
-
 PROFILES = {
     "balanced": {
         "name": "🛡 Баланс",
         "description": "YouTube + Discord + обход блокировок",
-        "max_ping": 300,      # было 200, расширяем
+        "max_ping": 300,
         "min_tier": 3,
-        "limit": 20,          # было 10, больше кандидатов
+        "limit": 20,
         "countries": None,
     },
     "gaming": {
@@ -129,15 +99,15 @@ PROFILES = {
         "description": "Минимальный пинг для игр и Discord",
         "max_ping": 80,
         "min_tier": 2,
-        "limit": 15,          # было 5
+        "limit": 15,
         "countries": ["DE", "FI", "SE", "PL", "NL", "LV", "LT", "EE"],
     },
     "streaming": {
         "name": "🎬 Стриминг",
-        "description": "YouTube, Netflix, Twitch — максимальная скорость",
+        "description": "YouTube, Netflix, Twitch",
         "max_ping": 200,
         "min_tier": 2,
-        "limit": 20,          # было 10
+        "limit": 20,
         "countries": ["DE", "NL", "US", "GB", "SE", "FI"],
     },
     "paranoid": {
@@ -145,160 +115,165 @@ PROFILES = {
         "description": "Максимальная приватность",
         "max_ping": 400,
         "min_tier": 2,
-        "limit": 15,          # было 5
+        "limit": 15,
         "countries": ["CH", "IS", "NO", "RO", "MD", "LU"],
     },
 }
 
 
-# === BUILDER ===
-
 class SingBoxBuilder:
-    """Конструктор Sing-Box конфигов."""
 
     def __init__(self):
         self.outbounds = []
-        self.route_rules = []
-        self.dns_rules = []
-        self._split_routing = False
-        self._ads_blocked = False
+        self._used_tags = set()
+        self._node_tags = []
+
+    def _make_unique_tag(self, country: str, flag: str, ping: int, host: str) -> str:
+        """Гарантированно уникальный тег."""
+        base = f"{flag}{country}_{ping}ms"
+        tag = base
+        counter = 1
+        while tag in self._used_tags:
+            counter += 1
+            tag = f"{base}_{counter}"
+        self._used_tags.add(tag)
+        return tag
 
     def add_nodes_from_db(self, configs: list) -> "SingBoxBuilder":
-        """
-        Принимает список объектов Config из базы.
-        Парсит link каждого и создаёт outbound.
-        """
         for cfg in configs:
-            link = cfg.link if hasattr(cfg, 'link') else cfg.get('link', '')
-            country = cfg.country if hasattr(cfg, 'country') else cfg.get('country', '')
-            flag = cfg.flag if hasattr(cfg, 'flag') else cfg.get('flag', '')
-            ping = cfg.ping if hasattr(cfg, 'ping') else cfg.get('ping', 0)
+            link = cfg.get("link", "") if isinstance(cfg, dict) else getattr(cfg, "link", "")
+            country = cfg.get("country", "") if isinstance(cfg, dict) else getattr(cfg, "country", "")
+            flag = cfg.get("flag", "") if isinstance(cfg, dict) else getattr(cfg, "flag", "")
+            ping = cfg.get("ping", 0) if isinstance(cfg, dict) else getattr(cfg, "ping", 0)
 
             info = parse_vless_full(link)
             if not info:
                 continue
 
-            outbound = self._build_outbound(info, country, flag, ping)
+            tag = self._make_unique_tag(country, flag, ping, info.host)
+            outbound = self._build_outbound(info, tag)
             if outbound:
                 self.outbounds.append(outbound)
+                self._node_tags.append(tag)
 
         return self
 
-    def add_auto_select(self, interval: str = "30s", tolerance: int = 100) -> "SingBoxBuilder":
-        """Агрессивный авто-выбор — проверка каждые 30 секунд."""
-        proxy_tags = [
-            o["tag"] for o in self.outbounds
-            if o["type"] in ("vless", "hysteria2", "trojan")
-        ]
+    def _build_outbound(self, info: VlessFullInfo, tag: str) -> Optional[dict]:
+        out = {
+            "type": "vless",
+            "tag": tag,
+            "server": info.host,
+            "server_port": info.port,
+            "uuid": info.uuid,
+        }
 
-        if not proxy_tags:
-            return self
+        if info.flow:
+            out["flow"] = info.flow
 
-        # Основная группа — urltest
-        self.outbounds.append({
-            "type": "urltest",
-            "tag": "⚡ Auto",
-            "outbounds": proxy_tags,
-            "url": "https://cp.cloudflare.com/generate_204",
-            "interval": interval,       # Каждые 30 секунд
-            "tolerance": tolerance,     # 100ms допуск
-            "idle_timeout": "30m",
-        })
+        tls = {
+            "enabled": True,
+            "server_name": info.sni if info.sni else info.host,
+            "insecure": False,
+        }
 
-        return self
+        if info.fp:
+            tls["utls"] = {
+                "enabled": True,
+                "fingerprint": info.fp,
+            }
 
-    def add_split_routing(self) -> "SingBoxBuilder":
-        """РФ сайты напрямую, остальное через VPN."""
-        self._split_routing = True
+        if info.alpn:
+            tls["alpn"] = info.alpn
 
-        self.route_rules.append({
-            "domain_suffix": RU_DIRECT_DOMAINS,
-            "outbound": "🇷🇺 Direct",
-        })
+        if info.security == "reality":
+            tls["reality"] = {
+                "enabled": True,
+                "public_key": info.pbk,
+                "short_id": info.sid,
+            }
 
-        self.route_rules.append({
-            "rule_set": ["geoip-ru", "geosite-category-ru"],
-            "outbound": "🇷🇺 Direct",
-        })
+        out["tls"] = tls
 
-        self.dns_rules.append({
-            "domain_suffix": [".ru", ".рф", ".su"],
-            "server": "local",
-        })
+        if info.transport == "ws":
+            out["transport"] = {
+                "type": "ws",
+                "path": info.path,
+                "headers": {"Host": info.sni if info.sni else info.host},
+            }
+        elif info.transport == "grpc":
+            sn = info.service_name if info.service_name else info.path.strip("/")
+            if sn:
+                out["transport"] = {
+                    "type": "grpc",
+                    "service_name": sn,
+                }
+        elif info.transport == "h2":
+            out["transport"] = {
+                "type": "http",
+                "host": [info.sni if info.sni else info.host],
+                "path": info.path,
+            }
 
-        return self
-
-    def add_ads_block(self) -> "SingBoxBuilder":
-        """Блокировка рекламы."""
-        self._ads_blocked = True
-
-        self.route_rules.append({
-            "rule_set": "geosite-category-ads-all",
-            "outbound": "🚫 Block",
-        })
-        return self
+        return out
 
     def build(self) -> dict:
-        """Собирает финальный конфиг."""
-        system_outbounds = [
-            {"type": "direct", "tag": "🇷🇺 Direct"},
-            {"type": "block", "tag": "🚫 Block"},
-            {"type": "dns", "tag": "dns-out"},
-        ]
-
-        auto_tag = "⚡ Auto"
-        has_auto = any(o.get("tag") == auto_tag for o in self.outbounds)
-
-        if has_auto:
-            default_out = auto_tag
-        elif self.outbounds:
-            default_out = self.outbounds[0]["tag"]
-        else:
-            default_out = "🇷🇺 Direct"
-
-        # Rule sets
-        rule_sets = []
-        if self._split_routing:
-            rule_sets.extend([
-                {
-                    "tag": "geoip-ru",
-                    "type": "remote",
-                    "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs",
-                    "format": "binary",
-                },
-                {
-                    "tag": "geosite-category-ru",
-                    "type": "remote",
-                    "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ru.srs",
-                    "format": "binary",
-                },
-            ])
-        if self._ads_blocked:
-            rule_sets.append({
-                "tag": "geosite-category-ads-all",
-                "type": "remote",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
-                "format": "binary",
+        # Urltest
+        if self._node_tags:
+            self.outbounds.append({
+                "type": "urltest",
+                "tag": "auto",
+                "outbounds": list(self._node_tags),
+                "url": "https://cp.cloudflare.com/generate_204",
+                "interval": "30s",
+                "tolerance": 100,
             })
 
-        return {
-            "log": {"level": "warn", "timestamp": True},
+        # System outbounds
+        self.outbounds.extend([
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+            {"type": "dns", "tag": "dns-out"},
+        ])
+
+        default_out = "auto" if self._node_tags else "direct"
+
+        config = {
+            "log": {
+                "level": "warn",
+                "timestamp": True,
+            },
             "dns": {
                 "independent_cache": True,
                 "servers": [
                     {
-                        "tag": "google",
+                        "tag": "dns-google",
                         "address": "tls://8.8.8.8",
                         "detour": default_out,
                     },
                     {
-                        "tag": "local",
+                        "tag": "dns-local",
                         "address": "77.88.8.8",
-                        "detour": "🇷🇺 Direct",
+                        "detour": "direct",
+                    },
+                    {
+                        "tag": "dns-block",
+                        "address": "rcode://success",
                     },
                 ],
-                "rules": self.dns_rules + [
-                    {"outbound": "any", "server": "google"}
+                "rules": [
+                    {
+                        "domain_suffix": [".ru", ".su", ".xn--p1ai"],
+                        "server": "dns-local",
+                    },
+                    {
+                        "rule_set": "geosite-category-ads-all",
+                        "server": "dns-block",
+                        "disable_cache": True,
+                    },
+                    {
+                        "outbound": "any",
+                        "server": "dns-google",
+                    },
                 ],
             },
             "inbounds": [
@@ -313,115 +288,73 @@ class SingBoxBuilder:
                     "sniff_override_destination": True,
                 }
             ],
-            "outbounds": self.outbounds + system_outbounds,
+            "outbounds": self.outbounds,
             "route": {
                 "rules": [
-                    {"protocol": "dns", "outbound": "dns-out"},
-                ] + self.route_rules + [
-                    {"outbound": default_out},
+                    {
+                        "protocol": "dns",
+                        "outbound": "dns-out",
+                    },
+                    {
+                        "domain_suffix": [
+                            ".ru", ".su", ".xn--p1ai",
+                            ".sberbank.ru", ".tinkoff.ru", ".vtb.ru",
+                            ".alfabank.ru", ".gosuslugi.ru", ".nalog.gov.ru",
+                            ".mos.ru", ".yandex.ru", ".yandex.net",
+                            ".ya.ru", ".yandex.com", ".mail.ru",
+                            ".vk.com", ".ok.ru", ".dzen.ru",
+                            ".wildberries.ru", ".ozon.ru", ".avito.ru",
+                            ".megafon.ru", ".mts.ru", ".beeline.ru",
+                            ".tele2.ru", ".rt.ru", ".rostelecom.ru",
+                            ".pochta.ru", ".rzd.ru", ".aeroflot.ru",
+                            ".kinopoisk.ru", ".ivi.ru",
+                        ],
+                        "outbound": "direct",
+                    },
+                    {
+                        "rule_set": "geoip-ru",
+                        "outbound": "direct",
+                    },
+                    {
+                        "rule_set": "geosite-category-ads-all",
+                        "outbound": "block",
+                    },
+                    {
+                        "outbound": default_out,
+                    },
                 ],
-                "rule_set": rule_sets,
+                "rule_set": [
+                    {
+                        "tag": "geoip-ru",
+                        "type": "remote",
+                        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs",
+                        "format": "binary",
+                    },
+                    {
+                        "tag": "geosite-category-ads-all",
+                        "type": "remote",
+                        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
+                        "format": "binary",
+                    },
+                ],
                 "auto_detect_interface": True,
             },
         }
 
+        return config
+
     def build_json(self, indent: int = 2) -> str:
-        """Возвращает готовый JSON-строкой."""
         return json.dumps(self.build(), indent=indent, ensure_ascii=False)
 
-    # === ПРИВАТНЫЕ МЕТОДЫ ===
-
-    def _build_outbound(self, info: VlessFullInfo,
-                        country: str, flag: str, ping: int) -> Optional[dict]:
-        """Конвертирует VlessFullInfo в Sing-Box outbound."""
-
-        host_short = info.host.split('.')[0][-4:]
-        tag = f"{flag} {country} {ping}ms [{host_short}]"
-
-        out = {
-            "type": "vless",
-            "tag": tag,
-            "server": info.host,
-            "server_port": info.port,
-            "uuid": info.uuid,
-        }
-
-        # Flow (для XTLS)
-        if info.flow:
-            out["flow"] = info.flow
-
-        # TLS
-        tls = {
-            "enabled": True,
-            "server_name": info.sni,
-            "utls": {
-                "enabled": True,
-                "fingerprint": info.fp or "chrome",
-            },
-        }
-
-        # ALPN
-        if info.alpn:
-            tls["alpn"] = info.alpn
-
-        # Reality
-        if info.security == "reality":
-            tls["reality"] = {
-                "enabled": True,
-                "public_key": info.pbk,
-                "short_id": info.sid,
-            }
-
-        out["tls"] = tls
-
-        # Transport
-        if info.transport == "ws":
-            out["transport"] = {
-                "type": "ws",
-                "path": info.path,
-                "headers": {"Host": info.sni},
-            }
-        elif info.transport == "grpc":
-            out["transport"] = {
-                "type": "grpc",
-                "service_name": info.service_name or info.path.strip("/"),
-            }
-        elif info.transport == "xhttp":
-            out["transport"] = {
-                "type": "xhttp",
-                "host": info.sni,
-                "path": info.path,
-            }
-        elif info.transport == "h2":
-            out["transport"] = {
-                "type": "http",
-                "host": [info.sni],
-                "path": info.path,
-            }
-        # tcp — без transport блока
-
-        return out
-
-
-# === ФАБРИЧНЫЕ ФУНКЦИИ ===
 
 def build_for_profile(configs: list, profile_name: str = "balanced") -> str:
-    """
-    Основная функция: принимает список конфигов из БД,
-    возвращает готовый JSON для Sing-Box.
-
-    Использование:
-        configs = await get_configs_for_singbox(profile)
-        json_str = build_for_profile(configs, "gaming")
-    """
     profile = PROFILES.get(profile_name, PROFILES["balanced"])
 
-    # Фильтруем по профилю
     filtered = []
     for cfg in configs:
-        ping = cfg.ping if hasattr(cfg, 'ping') else cfg.get('ping', 999)
-        tier = cfg.tier if hasattr(cfg, 'tier') else cfg.get('tier', 3)
-        country = cfg.country if hasattr(cfg, 'country') else cfg.get('country', '')
+        ping = cfg.get("ping", 999) if isinstance(cfg, dict) else getattr(cfg, "ping", 999)
+        tier = cfg.get("tier", 3) if isinstance(cfg, dict) else getattr(cfg, "tier", 3)
+        country = cfg.get("country", "") if isinstance(cfg, dict) else getattr(cfg, "country", "")
 
         if ping > profile["max_ping"]:
             continue
@@ -432,22 +365,20 @@ def build_for_profile(configs: list, profile_name: str = "balanced") -> str:
 
         filtered.append(cfg)
 
-    # Берём лучших по лимиту
     filtered = filtered[:profile["limit"]]
 
     if not filtered:
-        # Если под профиль ничего не подошло — берём лучшие из всех
-        filtered = sorted(configs, key=lambda c: c.ping if hasattr(c, 'ping') else c.get('ping', 999))[:5]
+        all_sorted = sorted(
+            configs,
+            key=lambda c: c.get("ping", 999) if isinstance(c, dict) else getattr(c, "ping", 999)
+        )
+        filtered = all_sorted[:5]
 
     builder = SingBoxBuilder()
     builder.add_nodes_from_db(filtered)
-    builder.add_auto_select()
-    builder.add_split_routing()
-    builder.add_ads_block()
 
     return builder.build_json()
 
 
 def get_available_profiles() -> dict:
-    """Возвращает словарь профилей для отображения в боте."""
     return PROFILES
