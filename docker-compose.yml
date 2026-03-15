@@ -27,6 +27,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: vless_bot_playground
+    ports:
+        - "5432:5432"
     command: >
       postgres -c shared_buffers=8MB -c max_connections=5 -c work_mem=1MB -c autovacuum=off -c max_worker_processes=2
     deploy:
