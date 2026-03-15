@@ -19,7 +19,7 @@ from app import start_app
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 CPU_LIMIT = 100.0  # 1 ядро
-RAM_LIMIT = 1024.0  # 1 ГБ
+RAM_LIMIT = float(os.getenv("RAM_LIMIT_MB", "180"))  # 1 ГБ
 
 # Подключаем ручное управление памятью Linux (просто библиотеку чтобы работать с ЯП C и в целом его методами/функциями не ебу короче )
 try:
